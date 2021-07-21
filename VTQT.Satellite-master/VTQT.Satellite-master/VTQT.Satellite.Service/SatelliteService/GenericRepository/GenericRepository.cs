@@ -5,18 +5,21 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Threading.Tasks;
+using VTQT.Satellite.Entity.Entity;
 using VTQT.Satellite.Service.SatelliteService.DataContext;
 
 namespace VTQT.Satellite.Service.SatelliteService.GenericRepository
 {
-    public class GenericRepository<TEntity> : IGenericRepository<TEntity> where TEntity : class
+    public class GenericRepository<TEntity> : IGenericRepository<TEntity> where TEntity : BaseEntity
     {
         private readonly AppDataConnection _context;
-
+        private ITable<TEntity> _en;
         public GenericRepository(AppDataConnection context)
         {
             _context = context;
         }
+        protected virtual ITable<TEntity> _entitie => _en == null ? (_en = _context.GetTable<TEntity>()) : _en;
+
         public virtual IEnumerable<TEntity> Get(
             Expression<Func<TEntity, bool>> filter = null,
             Func<IQueryable<TEntity>, IOrderedQueryable<TEntity>> orderBy = null, int records = 0)
@@ -70,13 +73,14 @@ namespace VTQT.Satellite.Service.SatelliteService.GenericRepository
 
             return await query.ToListAsync();
         }
-        public TEntity GetFirst(Expression<Func<TEntity, bool>> filter = null)
+        public TEntity GetFirst(object id)
         {
-            return _context.GetTable<TEntity>().FirstOrDefault(filter);
+            return _entitie.FirstOrDefault<TEntity>(e => e.Id == (int)id);
+
         }
-        public async Task<TEntity> GetFirstAsync(Expression<Func<TEntity, bool>> filter = null)
+        public async Task<TEntity> GetFirstAsync(object id)
         {
-            return await _context.GetTable<TEntity>().FirstOrDefaultAsync(filter);
+            return await _entitie.FirstOrDefaultAsync<TEntity>(e => e.Id == (int)id);
         }
 
 
@@ -85,9 +89,9 @@ namespace VTQT.Satellite.Service.SatelliteService.GenericRepository
             return _context.Insert(entity);
         }
 
-        public int Delete(Expression<Func<TEntity, bool>> filter = null)
+        public int Delete(object id)
         {
-            return _context.GetTable<TEntity>().Where(filter).Delete();
+            return _entitie.Where(x => x.Id.Equals((int)id)).Delete();
         }
 
         public int Update(TEntity entityToUpdate)
@@ -102,15 +106,16 @@ namespace VTQT.Satellite.Service.SatelliteService.GenericRepository
             return await _context.InsertAsync(entity);
         }
 
-        public async Task<int> DeleteAsync(Expression<Func<TEntity, bool>> filter = null)
+        public async Task<int> DeleteAsync(object id)
         {
-            return await _context.GetTable<TEntity>().Where(filter).DeleteAsync();
+            return await _entitie.Where(x => x.Id.Equals((int)id)).DeleteAsync();
         }
 
         public async Task<int> UpdateAsync(TEntity entityToUpdate)
         {
             return await _context.UpdateAsync(entityToUpdate);
         }
+        public virtual IQueryable<TEntity> Table => (IQueryable<TEntity>)_entitie;
 
     }
 }

@@ -10,6 +10,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\VTQT.Satellite.Service\VTQT.Satellite.Service.csproj" />
+    <ProjectReference Include="..\VTQT.Satellite.ShareMVC\VTQT.Satellite.ShareMVC.csproj" />
   </ItemGroup>
 
 

@@ -12,7 +12,6 @@ namespace VTQT.Satellite.Service.SatelliteService.DIUnitOfWork
     {
         public static void AddInfrastructure(this IServiceCollection services)
         {
-            services.AddScoped<IUnitOfWork, UnitOfWork>();
             services.AddScoped(typeof(IGenericRepository<>), typeof(GenericRepository<>));
 
         }

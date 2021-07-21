@@ -15,11 +15,9 @@ namespace VTQT.Satellite.API.Controllers
     {
 
         private readonly IHttpClientFactory _clientFactory;
-        private readonly IUnitOfWork _unitOfWork;
-        public ApiController( IHttpClientFactory clientFactory, IUnitOfWork unitOfWork)
+        public ApiController( IHttpClientFactory clientFactory)
         {
             _clientFactory = clientFactory;
-            _unitOfWork = unitOfWork;
         }
         [HttpGet]
         public async Task<IActionResult> Get()

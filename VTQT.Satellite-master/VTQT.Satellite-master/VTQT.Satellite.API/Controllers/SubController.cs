@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Http;
+﻿using AutoMapper;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using System;
 using System.Collections.Generic;
@@ -8,6 +9,9 @@ using VTQT.Satellite.API.Models;
 using VTQT.Satellite.Entity.Entity;
 using VTQT.Satellite.Service.SatelliteService.DataContext;
 using VTQT.Satellite.Service.SatelliteService.DIUnitOfWork;
+using VTQT.Satellite.Service.SatelliteService.Repository;
+using VTQT.Satellite.ShareMVC.Extensions;
+using VTQT.Satellite.ShareMVC.Models;
 
 namespace VTQT.Satellite.API.Controllers
 {
@@ -15,71 +19,37 @@ namespace VTQT.Satellite.API.Controllers
     [ApiController]
     public class SubController : ControllerBase
     {
+        private readonly IMapper _mapper;
+        private readonly ISubscriberServer _subscriber;
 
-        private readonly IUnitOfWork _unitOfWork;
-        private readonly AppDataConnection _appData;
-
-        public SubController(IUnitOfWork unitOfWork, AppDataConnection appData)
+        public SubController(ISubscriberServer unitOfWork,  IMapper mapper)
         {
-            _unitOfWork = unitOfWork;
-            _appData = appData;
+            _subscriber = unitOfWork;
+            _mapper = mapper;
         }
 
 
         [HttpGet("GetPaginatedList")]
         public IActionResult GetPaginatedList(int start, int length, [FromQuery(Name = "search[value]")] string page)
         {
-            if (string.IsNullOrEmpty(page))
-                page = "";
-            var list = _unitOfWork.SubscriberRepository.Get(x => x.CustomerName.Contains(page)).Select(x => new SubscriberViewModel
-            {
-                Id = x.Id,
-                Status = x.Status,
-                ContractNo = x.ContractNo,
-                CustomerAddress = x.CustomerAddress,
-                CustomerMobile = x.CustomerMobile,
-                CustomerName = x.CustomerName,
-                District = x.District,
-                PaymentCycleRegisted = x.PaymentCycleRegisted,
-                Province = x.Province,
-                ShipPlateNo = x.ShipPlateNo
-            });
-
-            var l = (from a in _appData.Subscribers
-                     where a.CustomerName.Contains(page)
-                     select a).Skip(start).Take(length);
-            var c = (from a in _appData.Subscribers
-                     select a.Id).Count();
-
-            return Ok(new { data = l, t = true, recordsTotal = c, recordsFiltered = c });
+            var list = _subscriber.GetTable(page, start, length);
+            return Ok(new{ data=list.Data,recordsTotal=list.Count, recordsFiltered=list.Count});
         }
 
-
-        [HttpGet]
-        public IActionResult GetAll()
-        {
-            return Ok(_unitOfWork.SubscriberRepository.Get(x => x.Id > 0));
-        }
         [HttpGet("{id}")]
-        public IActionResult GetById(string id)
+        public async Task<IActionResult> GetById(int id)
         {
-            return Ok(_unitOfWork.SubscriberRepository.GetFirst(x => x.Id.Equals(id)));
+            return Ok(await _subscriber.GetByIdAsync(id));
         }
 
 
         [HttpPut]
-        public IActionResult Add(Subscriber SubscriberRepository)
+        public async Task<IActionResult> Add([FromForm] SubModel subModel)
         {
-            var model = _unitOfWork.SubscriberRepository.GetFirst(x => x.Id.Equals(SubscriberRepository.Id));
-            if (model == null)
-            {
-                return Ok(0);
-            }
             if (ModelState.IsValid)
             {
-                SubscriberRepository.ReferenceId = model.ReferenceId;
-                SubscriberRepository.LastSync = model.LastSync;
-                return Ok(_unitOfWork.SubscriberRepository.Insert(SubscriberRepository));
+                var model = _mapper.Map<Subscriber>(subModel);
+                return Ok(await _subscriber.InsertAsync(model));
             }
             else
                 return Ok(0);
@@ -87,25 +57,21 @@ namespace VTQT.Satellite.API.Controllers
         }
 
         [HttpDelete("{id}")]
-        public IActionResult Delete(string id)
+        public async Task<IActionResult> Delete(int id)
         {
-            if (!string.IsNullOrEmpty(id))
-                return Ok(_unitOfWork.SubscriberRepository.Delete(x => x.Id.Equals(id)));
-            else
-                return Ok(0);
-
+            return Ok(await _subscriber.DeletesAsync(id));
         }
 
-        [HttpPatch]
-        public IActionResult Update(Subscriber SubscriberRepository, string id)
+        [HttpPatch("{id}")]
+        public async Task<IActionResult> Update([FromForm] SubModel subModel, int id)
         {
-            if (!id.Equals(SubscriberRepository.Id))
+            var model = await _subscriber.GetByIdAsync(id);
+            if (!id.Equals(subModel.Id) || model == null)
                 return Ok(0);
-            return Ok(_unitOfWork.SubscriberRepository.Update(SubscriberRepository));
+            subModel.ReferenceId = model.ReferenceId;
+            subModel.LastSync = model.LastSync;
+            model = _mapper.Map<Subscriber>(subModel);
+            return Ok(await _subscriber.UpdateAsync(model));
         }
-
-
-
-
     }
 }

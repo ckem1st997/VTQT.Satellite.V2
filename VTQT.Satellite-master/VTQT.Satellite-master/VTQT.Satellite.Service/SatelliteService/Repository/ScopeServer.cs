@@ -10,7 +10,7 @@ namespace VTQT.Satellite.Service.SatelliteService.Repository
     {
         public static void AddRepository(this IServiceCollection services)
         {
-            services.AddScoped<ISubscriberRepository, SubscriberRepository>();
+            services.AddScoped<ISubscriberServer, SubscriberServer>();
 
         }
     }
